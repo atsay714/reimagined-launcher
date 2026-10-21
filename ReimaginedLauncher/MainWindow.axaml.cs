@@ -2269,7 +2269,10 @@ public partial class MainWindow : Window
             {
                 if (OperatingSystem.IsMacOS())
                 {
+                    // D2RLoader starts the game with its own path as the command line.
                     var pids = WineRuntime.FindMacProcesses(exePath);
+                    if (pids.Length == 0)
+                        pids = WineRuntime.FindMacProcesses(Path.Combine(Path.GetDirectoryName(exePath) ?? string.Empty, "D2RLoader.exe"));
                     if (pids.Length != 0)
                         return Process.GetProcessById(pids[0]);
                     Thread.Sleep(2000);
