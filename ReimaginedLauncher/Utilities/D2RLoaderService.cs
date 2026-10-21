@@ -440,8 +440,8 @@ public static partial class D2RLoaderService
         {
         }
 
-        // FileVersionInfo does not read PE metadata on Linux.
-        if (OperatingSystem.IsLinux())
+        // FileVersionInfo does not read PE metadata outside Windows.
+        if (!OperatingSystem.IsWindows())
         {
             return ReadPeFileVersion(path);
         }

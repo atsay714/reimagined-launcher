@@ -601,11 +601,10 @@ public class GameLauncherService
             }
 
             var loaderPath = D2RLoaderService.GetLoaderPath(profile.InstallDirectory)!;
-            if (OperatingSystem.IsLinux())
+            if (WineRuntime.IsRequired)
             {
-                var winePath = FindExecutableOnPath("wine") ?? "wine";
-                var winePrefix = FindWinePrefix(loaderPath);
-                var prefix = winePrefix is null ? string.Empty : $"WINEPREFIX=\"{winePrefix}\" ";
+                var winePath = WineRuntime.FindExecutable() ?? "wine";
+                var prefix = WineRuntime.FormatPrefixEnvironment(winePath, FindWinePrefix(loaderPath));
                 return $"{prefix}\"{winePath}\" \"{loaderPath}\" {launchParameters}";
             }
 
@@ -622,11 +621,10 @@ public class GameLauncherService
         }
 
         var executablePath = ResolveExecutablePath(gamePathOverride) ?? "D2R.exe";
-        if (OperatingSystem.IsLinux())
+        if (WineRuntime.IsRequired)
         {
-            var winePath = FindExecutableOnPath("wine") ?? "wine";
-            var winePrefix = FindWinePrefix(executablePath);
-            var prefix = winePrefix is null ? string.Empty : $"WINEPREFIX=\"{winePrefix}\" ";
+            var winePath = WineRuntime.FindExecutable() ?? "wine";
+            var prefix = WineRuntime.FormatPrefixEnvironment(winePath, FindWinePrefix(executablePath));
             return $"{prefix}\"{winePath}\" \"{executablePath}\" {launchParameters}";
         }
 
@@ -772,9 +770,9 @@ public class GameLauncherService
             }
 
             var loaderPath = D2RLoaderService.GetLoaderPath(profile.InstallDirectory)!;
-            if (OperatingSystem.IsLinux())
+            if (WineRuntime.IsRequired)
             {
-                if (profile.Type == InstallationType.Steam)
+                if (OperatingSystem.IsLinux() && profile.Type == InstallationType.Steam)
                 {
                     var steamInstallPath = GetSteamInstallPath(installDirectory: profile.InstallDirectory);
                     if (!IsValidSteamProtonLaunch(profile, steamInstallPath, loaderPath, out var error))
@@ -790,10 +788,12 @@ public class GameLauncherService
                 }
                 else
                 {
-                    executablePath = FindExecutableOnPath("wine") ?? string.Empty;
+                    executablePath = WineRuntime.FindExecutable() ?? string.Empty;
                     if (string.IsNullOrWhiteSpace(executablePath))
                     {
-                        Notifications.SendNotification("Wine was not found. Install Wine to use D2RLoader.", "Warning");
+                        Notifications.SendNotification(OperatingSystem.IsMacOS()
+                            ? "CrossOver or Wine was not found. Install CrossOver to use D2RLoader."
+                            : "Wine was not found. Install Wine to use D2RLoader.", "Warning");
                         return null;
                     }
 
@@ -837,12 +837,14 @@ public class GameLauncherService
                 return null;
             }
 
-            if (OperatingSystem.IsLinux())
+            if (WineRuntime.IsRequired)
             {
-                executablePath = FindExecutableOnPath("wine") ?? string.Empty;
+                executablePath = WineRuntime.FindExecutable() ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(executablePath))
                 {
-                    Notifications.SendNotification("Wine was not found. Install Wine or use the Steam installation type.", "Warning");
+                    Notifications.SendNotification(OperatingSystem.IsMacOS()
+                        ? "CrossOver or Wine was not found. Install CrossOver to run the game."
+                        : "Wine was not found. Install Wine or use the Steam installation type.", "Warning");
                     return null;
                 }
 
@@ -869,7 +871,10 @@ public class GameLauncherService
 
         if (!string.IsNullOrWhiteSpace(winePrefix))
         {
-            processStartInfo.Environment["WINEPREFIX"] = winePrefix;
+            foreach (var (name, value) in WineRuntime.GetPrefixEnvironment(executablePath, winePrefix))
+            {
+                processStartInfo.Environment[name] = value;
+            }
         }
 
         foreach (var (name, value) in environmentOverrides)
@@ -1043,7 +1048,7 @@ public class GameLauncherService
     {
         var startInfo = new ProcessStartInfo(executablePath)
         {
-            UseShellExecute = !OperatingSystem.IsLinux() && string.IsNullOrWhiteSpace(workingDirectory),
+            UseShellExecute = !WineRuntime.IsRequired && string.IsNullOrWhiteSpace(workingDirectory),
             Arguments = arguments,
             WorkingDirectory = workingDirectory ?? string.Empty
         };
@@ -1110,13 +1115,18 @@ public class GameLauncherService
             return windowsPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
 
-        if (!OperatingSystem.IsLinux())
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrWhiteSpace(home))
         {
             return [];
         }
 
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (string.IsNullOrWhiteSpace(home))
+        if (OperatingSystem.IsMacOS())
+        {
+            return WineRuntime.GetCrossOverGameCandidates(home).ToArray();
+        }
+
+        if (!OperatingSystem.IsLinux())
         {
             return [];
         }
@@ -1280,7 +1290,7 @@ public class GameLauncherService
 
     private static string? FindWinePrefix(string executablePath)
     {
-        if (!OperatingSystem.IsLinux() || string.IsNullOrWhiteSpace(executablePath))
+        if (!WineRuntime.IsRequired || string.IsNullOrWhiteSpace(executablePath))
         {
             return null;
         }

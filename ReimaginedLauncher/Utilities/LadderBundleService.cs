@@ -1057,9 +1057,9 @@ public sealed class LadderBundleService(
             && File.Exists(gamePath))
         {
             var gameVersion = FileVersionInfo.GetVersionInfo(gamePath).FileVersion ?? string.Empty;
-            // FileVersionInfo cannot read PE metadata on Linux; fall back to the
+            // FileVersionInfo cannot read PE metadata outside Windows; fall back to the
             // same binary reader the launcher uses for D2RLoader.exe.
-            if (string.IsNullOrWhiteSpace(gameVersion) && OperatingSystem.IsLinux())
+            if (string.IsNullOrWhiteSpace(gameVersion) && !OperatingSystem.IsWindows())
             {
                 gameVersion = D2RLoaderService.ReadFileVersion(gamePath) ?? string.Empty;
             }

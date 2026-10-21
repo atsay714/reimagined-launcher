@@ -71,8 +71,8 @@ public class SaveFileService
             candidates.Add(flatpakCompatPath);
         }
 
-        // 2. Linux: Wine default path
-        if (OperatingSystem.IsLinux() && !string.IsNullOrWhiteSpace(userProfile))
+        // 2. Linux/macOS: Wine default path. CrossOver bottles always use the "crossover" user.
+        if (WineRuntime.IsRequired && !string.IsNullOrWhiteSpace(userProfile))
         {
             var winePrefix = FindWinePrefix(MainWindow.Settings.CurrentProfile.InstallDirectory);
             if (!string.IsNullOrWhiteSpace(winePrefix))
@@ -81,6 +81,8 @@ public class SaveFileService
                     winePrefix, "drive_c", "users", Environment.UserName, "Saved Games"));
                 candidates.Add(Path.Combine(
                     winePrefix, "drive_c", "users", "steamuser", "Saved Games"));
+                candidates.Add(Path.Combine(
+                    winePrefix, "drive_c", "users", "crossover", "Saved Games"));
             }
 
             var winePath = Path.Combine(

@@ -2188,6 +2188,11 @@ public partial class MainWindow : Window
                     }
                 }
             }
+            if (OperatingSystem.IsMacOS())
+            {
+                return WineRuntime.FindMacProcesses("D2R.exe").Length != 0
+                       || WineRuntime.FindMacProcesses("D2RLoader.exe").Length != 0;
+            }
             // Under Wine the game usually shows up as "D2R.exe", which a
             // "D2R" lookup misses - and the startup cleanup would then delete a
             // live session's secrets file.
@@ -2262,6 +2267,15 @@ public partial class MainWindow : Window
         {
             try
             {
+                if (OperatingSystem.IsMacOS())
+                {
+                    var pids = WineRuntime.FindMacProcesses(exePath);
+                    if (pids.Length != 0)
+                        return Process.GetProcessById(pids[0]);
+                    Thread.Sleep(2000);
+                    continue;
+                }
+
                 var candidateProcesses = OperatingSystem.IsLinux()
                     ? Process.GetProcesses()
                     : Process.GetProcessesByName(processName);
