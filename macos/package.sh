@@ -18,6 +18,8 @@ rm -rf "$OUT"
 
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp -R "$OUT/publish/." "$APP/Contents/MacOS/"
+mv "$APP/Contents/MacOS/Assets" "$APP/Contents/Resources/Assets"
+ln -s ../Resources/Assets "$APP/Contents/MacOS/Assets"
 sed "s/@VERSION@/$VERSION/g" "$ROOT/macos/Info.plist" > "$APP/Contents/Info.plist"
 
 ICONSET="$OUT/AppIcon.iconset"
