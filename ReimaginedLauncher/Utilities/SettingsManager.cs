@@ -15,6 +15,10 @@ public static class SettingsManager
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReimaginedLauncher");
 
     private static readonly string SettingsFilePath = Path.Combine(AppDir, "settings.json");
+    private static readonly LocalPathSettings? LocalPaths = OperatingSystem.IsMacOS()
+        ? new LocalPathSettings(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReimaginedLauncher-Mac", "paths.json"))
+        : null;
     public static string AppDirectoryPath => AppDir;
 
     // Set when settings.json was unreadable this session and defaults were used instead.
@@ -30,7 +34,12 @@ public static class SettingsManager
         SettingsFileWasLoaded = false;
         SettingsFileWasMissing = !File.Exists(SettingsFilePath);
         if (SettingsFileWasMissing)
-            return new AppSettings();
+        {
+            var defaults = new AppSettings();
+            SanitizeSettings(defaults);
+            LocalPaths?.Apply(defaults);
+            return defaults;
+        }
 
         AppSettings settings;
         try
@@ -98,6 +107,7 @@ public static class SettingsManager
             return new AppSettings();
         }
 
+        LocalPaths?.Apply(settings);
         SettingsFileWasLoaded = true;
         return settings;
     }
@@ -168,7 +178,10 @@ public static class SettingsManager
         if (!Directory.Exists(AppDir))
             Directory.CreateDirectory(AppDir);
 
-        var json = JsonSerializer.Serialize(settings, SerializerOptions.Indented);
+        var json = LocalPaths is null
+            ? JsonSerializer.Serialize(settings, SerializerOptions.Indented)
+            : LocalPaths.SerializeForSave(settings, File.Exists(SettingsFilePath)
+                ? await ReadSettingsTextWithRetryAsync() : "{}");
 
         // Write to a unique temp file and swap it in, so an interrupted save can't truncate settings.json.
         var tempPath = $"{SettingsFilePath}.{Guid.NewGuid():N}.tmp";
