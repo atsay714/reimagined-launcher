@@ -1231,7 +1231,10 @@ public static class PluginsService
     {
         var excelDir = Path.GetFullPath(Path.Combine(modRootFull, "data", "global", "excel"))
             .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        if (destinationFull.StartsWith(excelDir + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        // Only the root and base directories participate in the Excel pre-stage passes.
+        var parent = Path.GetDirectoryName(destinationFull);
+        if (string.Equals(parent, excelDir, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(parent, Path.Combine(excelDir, "base"), StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

@@ -94,6 +94,30 @@ public sealed class LocalPluginInstallTests : IDisposable
         Assert.False(File.Exists(Path.Combine(modMpq, "data", "hd", "global", "sfx", "custom.flac")));
     }
     [Fact]
+    public async Task NestedInventoryTableInstallsAndReappliesAfterModUpdate()
+    {
+        var root = LocalPluginInstallService.ResolveRoot(profile);
+        var modMpq = Path.Combine(Path.GetDirectoryName(root)!, "Reimagined.mpq");
+        var excelDir = Path.Combine(modMpq, "data", "global", "excel");
+        Directory.CreateDirectory(excelDir);
+        const string table = "Id\tgridX\tgridY\ncharm-inv\t10\t6\n";
+        var plan = LocalPluginInstallService.Preview(Zip(
+            ("plugins/charm-test.dll", "DLL"),
+            ("Reimagined.mpq/data/global/excel/d2rloader/charm-inv/charminv.txt", table)), profile);
+        LocalPluginInstallService.Install(plan, false, () => { });
+        var target = Path.Combine(excelDir, "d2rloader", "charm-inv", "charminv.txt");
+        await PluginsService.ApplyEnabledPluginsExcelAssetsAsync(modMpq, excelDir);
+        await PluginsService.ApplyEnabledPluginsModRootAsync(modMpq);
+        Assert.True(File.Exists(target), "The nested capacity table must be installed before the game starts.");
+        Assert.Equal(table, File.ReadAllText(target));
+        File.Delete(target);
+        await PluginsService.ApplyEnabledPluginsExcelAssetsAsync(modMpq, excelDir);
+        await PluginsService.ApplyEnabledPluginsModRootAsync(modMpq);
+        Assert.Equal(table, File.ReadAllText(target));
+        await PluginAssetBackupService.RestoreForPluginAsync("d2rloader:charm-test");
+        Assert.False(File.Exists(target));
+    }
+    [Fact]
     public void ExplicitConfigReplacementIsBackedUp()
     {
         var root = LocalPluginInstallService.ResolveRoot(profile);
