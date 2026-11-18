@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   prepare:
-    if: github.repository == 'atsay714/reimagined-launcher'
+    if: github.repository == 'atsay714/reimagined-launcher-macos'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:

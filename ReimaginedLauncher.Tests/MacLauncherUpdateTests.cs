@@ -6,7 +6,7 @@ namespace ReimaginedLauncher.Tests;
 public sealed class MacLauncherUpdateTests
 {
     [Theory]
-    [InlineData(true, "https://github.com/atsay714/reimagined-launcher")]
+    [InlineData(true, "https://github.com/atsay714/reimagined-launcher-macos")]
     [InlineData(false, "https://github.com/D2R-Reimagined/reimagined-launcher")]
     public void PlatformSelectsItsOwnReleaseFeed(bool macOS, string expected)
         => Assert.Equal(expected, LauncherUpdateService.GetRepositoryUrl(macOS));

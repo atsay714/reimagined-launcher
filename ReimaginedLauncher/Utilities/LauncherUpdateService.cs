@@ -22,7 +22,7 @@ public sealed record LauncherUpdateCheckResult(LauncherUpdateCheckStatus Status,
 public static class LauncherUpdateService
 {
     internal static string GetRepositoryUrl(bool macOS) => macOS
-        ? "https://github.com/atsay714/reimagined-launcher"
+        ? "https://github.com/atsay714/reimagined-launcher-macos"
         : "https://github.com/D2R-Reimagined/reimagined-launcher";
 
     internal static string? GetRestartBlockReason(bool gameRunning, bool busy) => gameRunning

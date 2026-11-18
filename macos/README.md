@@ -2,12 +2,12 @@
 
 This is the Apple Silicon/CrossOver branch of
 [D2R-Reimagined/reimagined-launcher](https://github.com/D2R-Reimagined/reimagined-launcher).
-The fork is [atsay714/reimagined-launcher](https://github.com/atsay714/reimagined-launcher),
+The fork is [atsay714/reimagined-launcher-macos](https://github.com/atsay714/reimagined-launcher-macos),
 with `macos` as its default branch.
 
 ## Download and update
 
-Download the **Portable.zip** from [GitHub Releases](https://github.com/atsay714/reimagined-launcher/releases),
+Download the **Portable.zip** from [GitHub Releases](https://github.com/atsay714/reimagined-launcher-macos/releases),
 extract the app, and place it in `~/Applications`. Requires macOS 14 or newer on Apple
 Silicon, CrossOver and your own D2R installation. The app includes .NET; downloads
 need no SDK, Git, or build tools.

@@ -20,7 +20,7 @@ This replaces the earlier proposal for an in-app source rebuild button.
 Use the existing Velopack 1.2.161 dependency and updater. Its documented Mac support
 handles downloading packages, checking integrity, replacing the app and restarting.
 Package our Mac bundle with the matching `vpk` CLI, and route only Mac update checks
-to `atsay714/reimagined-launcher`. Windows/Linux retain their existing official feed.
+to `atsay714/reimagined-launcher-macos`. Windows/Linux retain their existing official feed.
 
 The alternatives were a custom updater/helper or rebuilding inside the app. Andrew
 selected binary updates from our fork; using the existing cross-platform updater
