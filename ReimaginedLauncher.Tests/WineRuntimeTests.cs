@@ -5,16 +5,17 @@ namespace ReimaginedLauncher.Tests;
 
 public sealed class WineRuntimeTests
 {
-    private const string CrossOverWine = "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/bin/wine";
-    private const string Bottle = "/Users/player/Library/Application Support/CrossOver/Bottles/D2R";
+    private static readonly string CrossOverWine = Path.Combine(Path.DirectorySeparatorChar.ToString(), "Applications", "CrossOver.app", "Contents", "SharedSupport", "CrossOver", "bin", "wine");
+    private static readonly string Bottles = Path.Combine(Path.DirectorySeparatorChar.ToString(), "Users", "player", "Library", "Application Support", "CrossOver", "Bottles");
+    private static readonly string Bottle = Path.Combine(Bottles, "D2R");
 
     [Fact]
     public void CrossOverSelectsTheBottleByNameAndParentDirectory()
     {
-        var environment = WineRuntime.GetPrefixEnvironment(CrossOverWine, Bottle + "/");
+        var environment = WineRuntime.GetPrefixEnvironment(CrossOverWine, Bottle + Path.DirectorySeparatorChar);
 
         Assert.Equal("D2R", environment["CX_BOTTLE"]);
-        Assert.Equal("/Users/player/Library/Application Support/CrossOver/Bottles", environment["CX_BOTTLE_PATH"]);
+        Assert.Equal(Bottles, environment["CX_BOTTLE_PATH"]);
         Assert.False(environment.ContainsKey("WINEPREFIX"));
     }
 
