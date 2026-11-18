@@ -38,7 +38,7 @@
 ### Task 2: Self-updating Mac packages
 
 **Files:** Modify `macos/package.sh`, `macos/Info.plist`; add `macos/release.sh` and `macos/tests/test_release_tools.py` plus isolated smoke fixture resources as needed.
-**Interfaces:** `INSTALL=0 VERSION=<four-part-version> ./macos/package.sh` produces an app without installation. `macos/release.sh VERSION OUTPUT` produces ZIP, nupkg/feed, SHA256SUMS and provenance. The default packaging command still installs locally after preserving the prior app.
+**Interfaces:** `INSTALL=0 VERSION=<three-part-version> ./macos/package.sh` produces an app without installation. `macos/release.sh VERSION OUTPUT` produces ZIP, nupkg/feed, SHA256SUMS and provenance. The default packaging command still installs locally after preserving the prior app.
 
 - [ ] Add failing argument/version/provenance validation tests; run them RED.
 - [ ] Separate bundle build from install; use pinned matching vpk CLI for Mac packaging, integrated ad-hoc signing and `--noInst`. Preserve custom resources and symlinks, set supported minimum OS, inject Mac assembly version without editing upstream project version.

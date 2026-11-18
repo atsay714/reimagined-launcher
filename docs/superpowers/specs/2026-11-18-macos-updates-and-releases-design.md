@@ -44,7 +44,7 @@ keeps the implementation smaller than a second update framework.
   Velopack-enabled build. Later updates use the in-app flow.
 
 ```text
-Launcher v0.19.13.1
+Launcher v1.0.1
 [Check for Updates]
 
 Checking → Downloading → Update ready
@@ -57,9 +57,9 @@ Checking → Downloading → Update ready
   to pinned `vpk` 1.2.161 to add the Mac updater metadata/helper and release packages.
 - Use one Mac arm64 release channel and a distinct Mac package identity. Preserve
   the existing Apple bundle identifier and installed app name.
-- Mac release versions contain the official three-part version plus an increasing
-  Mac build number, e.g. `0.19.13.1`. This allows Mac fixes without an upstream version
-  bump. Derive the build number from the release workflow’s run number.
+- Mac releases use stable SemVer `1.0.<workflow run number>`, e.g. `1.0.1`. The
+  pinned Velopack CLI rejects four-component versions. Preserve the independent
+  official version in provenance; Mac fixes can ship without an upstream bump.
 - Publish immutable `macos-v<version>` tags at the exact tested source commit. Keep
   official upstream tags and the upstream project’s version file unchanged; inject
   the Mac package version during publishing.
