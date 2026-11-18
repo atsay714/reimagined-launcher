@@ -66,6 +66,14 @@ class UpstreamSyncTests(unittest.TestCase):
         self.assertFalse(result["publish"])
         self.assertEqual(self.base, git(self.remote, "rev-parse", "macos"))
 
+    def test_release_cli_works_from_a_fresh_fork_without_official_tags(self):
+        git(self.fork, "tag", "-d", "v1.0.0")
+        result = subprocess.run(["python3", str(Path(sync.__file__).resolve()), "prepare", "--mode", "release",
+                                 "--build", "2", "--output", str(self.root / "output"),
+                                 "--upstream-url", str(self.official)], cwd=self.fork, text=True, capture_output=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("v1.0.0", json.loads(result.stdout)["upstreamTag"])
+
     def test_clean_candidate_retains_patch_without_advancing_remote(self):
         self.release()
         result = self.prepare()

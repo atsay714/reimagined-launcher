@@ -2452,6 +2452,13 @@ public partial class LaunchView : UserControl
     // can trigger a launch directly.
     public async Task StartGameAsync()
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         LaunchDiagnostics.ResetSession();
         LaunchDiagnostics.Log("Launch/Install button clicked.");
 

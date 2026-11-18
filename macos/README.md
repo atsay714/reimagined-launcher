@@ -2,12 +2,12 @@
 
 This is the Apple Silicon/CrossOver branch of
 [D2R-Reimagined/reimagined-launcher](https://github.com/D2R-Reimagined/reimagined-launcher).
-The fork is [atsay714/reimagined-launcher](https://github.com/atsay714/reimagined-launcher),
+The fork is [atsay714/reimagined-launcher-macos](https://github.com/atsay714/reimagined-launcher-macos),
 with `macos` as its default branch.
 
 ## Download and update
 
-Download the **Portable.zip** from [GitHub Releases](https://github.com/atsay714/reimagined-launcher/releases),
+Download the **Portable.zip** from [GitHub Releases](https://github.com/atsay714/reimagined-launcher-macos/releases),
 extract the app, and place it in `~/Applications`. Requires macOS 14 or newer on Apple
 Silicon, CrossOver and your own D2R installation. The app includes .NET; downloads
 need no SDK, Git, or build tools.
@@ -71,8 +71,17 @@ publication; previous releases remain available. Official tags are preserved.
 
 A `macos` source push publishes fork-only fixes. In Actions, **Run workflow → release**
 publishes the current fork, while **sync** checks upstream first. The run number forms
-the Mac version (`1.0.N`); keep this workflow/version sequence when changing automation.
+the Mac display/update version (`1.0.N`); the assembly compatibility version remains
+the official upstream version. Keep this workflow/version sequence when changing automation.
 Only the publication job has write permission. No token is shipped in the app.
+
+GitHub's default job token cannot push changes to workflow files. To synchronize
+upstream releases that change `.github/workflows`, configure the repository secret
+`UPSTREAM_SYNC_TOKEN` with **Contents: write** and **Workflows: write**, scoped to this
+fork, or merge those particular updates manually. Without that secret, such a sync
+stops with instructions; ordinary application updates use the default job token.
+Existing tags are immutable, interrupted draft uploads can resume on retry, and an
+older rerun cannot replace a newer public release as latest.
 
 GitHub can disable scheduled workflows after 60 days of repository inactivity;
 re-enable the workflow in Actions if necessary. A failed publication after the tested

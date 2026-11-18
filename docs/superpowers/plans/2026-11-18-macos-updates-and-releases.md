@@ -11,7 +11,7 @@
 
 - Keep the sole local source checkout; no new worktree, clone, move or reset.
 - Preserve saves, inventory dimensions, shared Windows paths, local Mac paths and backups.
-- Only Mac uses `https://github.com/atsay714/reimagined-launcher`; Windows/Linux keep the official feed.
+- Only Mac uses `https://github.com/atsay714/reimagined-launcher-macos`; Windows/Linux keep the official feed.
 - Use the `osx-arm64` release channel, distinct Mac package identity, existing app name and Apple bundle identifier.
 - No app-side source rebuild; no shipped tokens; no destructive/forced upstream sync.
 - Public downloads are initially ad-hoc signed and unnotarized; document that limitation.

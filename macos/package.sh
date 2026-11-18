@@ -15,7 +15,7 @@ APP_NAME="Reimagined Launcher"
 APP="$OUT/$APP_NAME.app"
 rm -rf "$OUT"
 "$DOTNET" publish "$PROJECT" -c Release -r osx-arm64 --self-contained -p:UseAppHost=true \
-    -p:Version="$VERSION" -p:PublishSingleFile=true -p:DebugType=none -o "$OUT/publish"
+    -p:InformationalVersion="$VERSION" -p:PublishSingleFile=true -p:DebugType=none -o "$OUT/publish"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp -R "$OUT/publish/." "$APP/Contents/MacOS/"
 mv "$APP/Contents/MacOS/Assets" "$APP/Contents/Resources/Assets"

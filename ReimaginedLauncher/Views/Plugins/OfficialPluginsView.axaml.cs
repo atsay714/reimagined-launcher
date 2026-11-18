@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -39,6 +39,13 @@ public partial class OfficialPluginsView : UserControl
 
     private async void OnInstallOrEnableClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (sender is not Button { DataContext: OfficialPluginCatalogItem plugin })
         {
             return;

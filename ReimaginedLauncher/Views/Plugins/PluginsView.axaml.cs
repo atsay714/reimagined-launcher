@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -120,6 +120,13 @@ public partial class PluginsView : UserControl
 
     private async void OnDryRunClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (_isDryRunning || _isLoading)
         {
             return;
@@ -192,6 +199,13 @@ public partial class PluginsView : UserControl
 
     private async void OnImportPluginClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (TopLevel.GetTopLevel(this) is not Window window)
         {
             return;
@@ -287,6 +301,13 @@ public partial class PluginsView : UserControl
 
     private async void OnUpdateUserPluginClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (sender is not Button { DataContext: PluginCatalogItem plugin } ||
             string.IsNullOrWhiteSpace(plugin.DiscussionUrl))
         {
@@ -369,6 +390,13 @@ public partial class PluginsView : UserControl
 
     private async void OnPluginEnabledClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (sender is not CheckBox { DataContext: PluginCatalogItem plugin } checkBox)
         {
             return;
@@ -412,6 +440,13 @@ public partial class PluginsView : UserControl
 
     private async void OnMovePluginUpClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (sender is not Button { DataContext: PluginCatalogItem plugin })
         {
             return;
@@ -434,6 +469,13 @@ public partial class PluginsView : UserControl
 
     private async void OnMovePluginDownClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (sender is not Button { DataContext: PluginCatalogItem plugin })
         {
             return;
@@ -456,6 +498,13 @@ public partial class PluginsView : UserControl
 
     private async void OnDeletePluginClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (sender is not Button { DataContext: PluginCatalogItem plugin })
         {
             return;
@@ -628,6 +677,13 @@ public partial class PluginsView : UserControl
 
     private async Task SaveEditorAsync()
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_selectedPluginId) || string.IsNullOrWhiteSpace(_selectedRelativePath))
         {
             Notifications.SendNotification("Select an add-on JSON file before saving.", "Warning");

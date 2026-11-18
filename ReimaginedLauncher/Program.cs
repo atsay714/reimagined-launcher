@@ -20,6 +20,12 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        if (OperatingSystem.IsMacOS() && args is ["--mac-build-info"])
+        {
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(MacLauncherBuildInfo.Read(),
+                new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+            return;
+        }
         if (OperatingSystem.IsLinux() && args.Length > 0 && args[0] is "--steam-game" or "--install-steam-handoff")
         {
             try

@@ -6,7 +6,7 @@ namespace ReimaginedLauncher.Tests;
 public sealed class MacLauncherUpdateTests
 {
     [Theory]
-    [InlineData(true, "https://github.com/atsay714/reimagined-launcher")]
+    [InlineData(true, "https://github.com/atsay714/reimagined-launcher-macos")]
     [InlineData(false, "https://github.com/D2R-Reimagined/reimagined-launcher")]
     public void PlatformSelectsItsOwnReleaseFeed(bool macOS, string expected)
         => Assert.Equal(expected, LauncherUpdateService.GetRepositoryUrl(macOS));
@@ -21,6 +21,32 @@ public sealed class MacLauncherUpdateTests
     [Fact]
     public void IdleLauncherCanRestart()
         => Assert.Null(LauncherUpdateService.GetRestartBlockReason(false, false));
+
+    [Fact]
+    public async Task HiddenOperationPreventsRestartUntilItsLeaseIsReleased()
+    {
+        var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (var hiddenLaunch = LauncherOperationGate.TryAcquire())
+        {
+            Assert.NotNull(hiddenLaunch);
+            Assert.True(LauncherOperationGate.IsBusy);
+            await Task.Yield();
+            Assert.NotNull(LauncherUpdateService.GetRestartBlockReason(false, LauncherOperationGate.IsBusy));
+            Assert.Null(LauncherOperationGate.TryAcquire());
+            pending.SetResult();
+        }
+        Assert.False(LauncherOperationGate.IsBusy);
+        using var restart = LauncherOperationGate.TryAcquire();
+        Assert.NotNull(restart);
+    }
+
+    [Fact]
+    public void MacBuildMetadataKeepsOfficialCompatibilitySeparateFromDisplay()
+    {
+        var info = MacLauncherBuildInfo.Read();
+        Assert.Equal(typeof(AppSettings).Assembly.GetName().Version!.ToString(3), info.UpstreamVersion);
+        Assert.NotEmpty(info.Version);
+    }
 
     [Fact]
     public async Task BackupPreservesBundleAndResourceSymlinks()

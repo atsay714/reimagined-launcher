@@ -1643,7 +1643,7 @@ public partial class MainWindow : Window
         }
         if (_isRestartingForUpdate || LauncherUpdateService.AreUpdatesDisabled || !LauncherUpdateService.IsUpdateDownloaded) return;
         var reason = LauncherUpdateService.GetRestartBlockReason(IsGameRunning(),
-            IsInstallInProgress || _isInitializingSettings || OwnedWindows.Count != 0
+            IsInstallInProgress || LauncherOperationGate.IsBusy || _isInitializingSettings || OwnedWindows.Count != 0
             || ContentArea.Content is LaunchView { IsBusyForLauncherUpdate: true });
         if (reason is not null)
         {
@@ -1651,6 +1651,12 @@ public partial class MainWindow : Window
             return;
         }
 
+        using var updateOperation = LauncherOperationGate.TryAcquire();
+        if (updateOperation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
         _isRestartingForUpdate = true;
         IsInstallInProgress = true;
         ContentArea.IsEnabled = false;

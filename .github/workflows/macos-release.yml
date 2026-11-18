@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   prepare:
-    if: github.repository == 'atsay714/reimagined-launcher'
+    if: github.repository == 'atsay714/reimagined-launcher-macos'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -87,8 +87,9 @@ jobs:
       - name: Use the prepared candidate
         env:
           CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+          UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
         run: |
-          git fetch "$RUNNER_TEMP/mac-source/candidate.bundle" HEAD
+          git fetch "$RUNNER_TEMP/mac-source/candidate.bundle" HEAD "refs/tags/$UPSTREAM_TAG:refs/tags/$UPSTREAM_TAG"
           test "$(git rev-parse FETCH_HEAD)" = "$CANDIDATE"
           git checkout --detach "$CANDIDATE"
       - uses: actions/setup-dotnet@v5
@@ -129,6 +130,7 @@ jobs:
         with:
           ref: macos
           fetch-depth: 0
+          token: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
       - uses: actions/download-artifact@v8
         with:
           name: mac-source
@@ -137,11 +139,12 @@ jobs:
         with:
           name: mac-release
           path: ${{ runner.temp }}/mac-release
-      - name: Verify provenance and advance the tested fork
+      - name: Verify provenance
         env:
           CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+          UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
         run: |
-          git fetch "$RUNNER_TEMP/mac-source/candidate.bundle" HEAD
+          git fetch "$RUNNER_TEMP/mac-source/candidate.bundle" HEAD "refs/tags/$UPSTREAM_TAG:refs/tags/$UPSTREAM_TAG"
           test "$(git rev-parse FETCH_HEAD)" = "$CANDIDATE"
           python3 - <<'PY'
           import json, os
@@ -154,17 +157,15 @@ jobs:
                   raise SystemExit('Release provenance mismatch: ' + field)
           PY
           (cd "$RUNNER_TEMP/mac-release" && sha256sum -c SHA256SUMS)
-          python3 macos/upstream_sync.py publish "$RUNNER_TEMP/mac-source/source.json" --verified
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          SYNC_WORKFLOW_PERMISSION: ${{ secrets.UPSTREAM_SYNC_TOKEN != '' }}
           RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
           MAC_VERSION: ${{ needs.prepare.outputs.version }}
           CANDIDATE: ${{ needs.prepare.outputs.candidate }}
           UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
         run: |
-          git tag "$RELEASE_TAG" "$CANDIDATE"
-          git push origin "refs/tags/$RELEASE_TAG"
           cat > "$RUNNER_TEMP/mac-release-notes.md" <<EOF
           Native Apple Silicon launcher, based on official launcher $UPSTREAM_TAG.
 
@@ -176,5 +177,4 @@ jobs:
 
           The .nupkg and releases.osx-arm64.json assets are used by the automatic updater. SHA256SUMS and provenance.json identify the exact tested source and downloads. Tests do not establish successful in-game character entry.
           EOF
-          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/mac-release/"* --verify-tag --draft --title "Mac Launcher $MAC_VERSION (upstream $UPSTREAM_TAG)" --notes-file "$RUNNER_TEMP/mac-release-notes.md"
-          gh release edit "$RELEASE_TAG" --draft=false --latest
+          python3 macos/publish_release.py publish "$RUNNER_TEMP/mac-source/source.json" "$RUNNER_TEMP/mac-release" "$RUNNER_TEMP/mac-release-notes.md"

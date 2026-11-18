@@ -56,7 +56,7 @@ def prepare(repo, upstream_url, upstream_tag, build, output, do_sync=True):
     return data
 
 
-def publish_branch(repo, data, verified=False):
+def publish_branch(repo, data, verified=False, allow_workflow_changes=False):
     if not verified or not data.get("publish"):
         raise RuntimeError("Only a successfully verified release candidate may be published")
     base, candidate = data["baseCommit"], data["candidateCommit"]
@@ -64,11 +64,18 @@ def publish_branch(repo, data, verified=False):
         raise ValueError("Invalid candidate commit")
     if not ancestor(repo, base, candidate):
         raise RuntimeError("Candidate does not preserve the original fork history")
+    if not allow_workflow_changes and git(repo, "diff", "--name-only", base, candidate, "--", ".github/workflows"):
+        raise RuntimeError("Upstream changes GitHub workflows. Configure UPSTREAM_SYNC_TOKEN with Contents and Workflows write permissions, or merge those changes manually.")
+    tag = data["releaseTag"]
+    if not re.fullmatch(r"macos-v1\.0\.[1-9][0-9]*", tag):
+        raise ValueError("Invalid Mac release tag")
+    existing_tag = git(repo, "ls-remote", "origin", "refs/tags/" + tag).split()
+    if existing_tag and existing_tag[0] != candidate:
+        raise RuntimeError("Existing Mac release tag belongs to a different source commit")
     remote = git(repo, "ls-remote", "origin", "refs/heads/macos").split()
     if not remote or remote[0] not in (base, candidate):
         raise RuntimeError("The fork changed while this build ran; rerun against its new head")
-    if remote[0] != candidate:
-        git(repo, "push", "origin", candidate + ":refs/heads/macos")
+    git(repo, "push", "--atomic", "origin", candidate + ":refs/heads/macos", candidate + ":refs/tags/" + tag)
 
 
 def latest_official_tag():
@@ -88,13 +95,14 @@ if __name__ == "__main__":
     prepare_parser = commands.add_parser("prepare")
     prepare_parser.add_argument("--mode", choices=("sync", "release"), required=True)
     prepare_parser.add_argument("--build", required=True)
+    prepare_parser.add_argument("--upstream-url", default=OFFICIAL)
     prepare_parser.add_argument("--output", required=True)
     publish_parser = commands.add_parser("publish")
     publish_parser.add_argument("metadata")
     publish_parser.add_argument("--verified", action="store_true")
     args = parser.parse_args()
     if args.command == "prepare":
-        tag = latest_official_tag() if args.mode == "sync" else git(".", "describe", "--tags", "--match", "v[0-9]*", "--abbrev=0")
-        print(json.dumps(prepare(".", OFFICIAL, tag, args.build, args.output, args.mode == "sync")))
+        tag = latest_official_tag() if args.mode == "sync" else "v" + ET.parse("ReimaginedLauncher/ReimaginedLauncher.csproj").getroot().findtext("PropertyGroup/Version")
+        print(json.dumps(prepare(".", args.upstream_url, tag, args.build, args.output, args.mode == "sync")))
     else:
         publish_branch(".", json.loads(Path(args.metadata).read_text()), args.verified)

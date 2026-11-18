@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -235,6 +235,13 @@ public partial class UserPluginsView : UserControl
 
     private async void OnInstallClicked(object? sender, RoutedEventArgs e)
     {
+        using var operation = LauncherOperationGate.TryAcquire();
+        if (operation is null)
+        {
+            Notifications.SendNotification("Wait for the current launcher operation to finish.", "Launcher");
+            return;
+        }
+
         if (sender is not Button { DataContext: UserPluginEntry plugin })
         {
             return;
