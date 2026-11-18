@@ -1,0 +1,180 @@
+name: Mac Release
+
+on:
+  push:
+    branches: [macos]
+    paths:
+      - 'ReimaginedLauncher/**'
+      - 'ReimaginedLauncher.Tests/**'
+      - 'macos/**'
+      - '.github/workflows/macos-release.yml'
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Publish the current fork, or synchronize the latest official stable release first'
+        required: true
+        type: choice
+        default: release
+        options: [release, sync]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'atsay714/reimagined-launcher'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      publish: ${{ steps.source.outputs.publish }}
+      version: ${{ steps.source.outputs.version }}
+      upstream_tag: ${{ steps.source.outputs.upstream_tag }}
+      candidate: ${{ steps.source.outputs.candidate }}
+      release_tag: ${{ steps.source.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: macos
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare exact source candidate
+        id: source
+        env:
+          EVENT: ${{ github.event_name }}
+          MODE: ${{ inputs.mode || 'release' }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ "$EVENT" = schedule ]; then MODE=sync; fi
+          python3 macos/upstream_sync.py prepare --mode "$MODE" --build "$GITHUB_RUN_NUMBER" --output "$RUNNER_TEMP/mac-source"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = json.loads((Path(os.environ['RUNNER_TEMP']) / 'mac-source/source.json').read_text())
+          fields = dict(publish=str(data['publish']).lower(), version=data['version'], upstream_tag=data['upstreamTag'], candidate=data['candidateCommit'], release_tag=data['releaseTag'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              for name, value in fields.items():
+                  print(f'{name}={value}', file=output)
+          PY
+      - uses: actions/upload-artifact@v7
+        if: steps.source.outputs.publish == 'true'
+        with:
+          name: mac-source
+          path: ${{ runner.temp }}/mac-source/
+          retention-days: 7
+
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: macos
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: mac-source
+          path: ${{ runner.temp }}/mac-source
+      - name: Use the prepared candidate
+        env:
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+        run: |
+          git fetch "$RUNNER_TEMP/mac-source/candidate.bundle" HEAD
+          test "$(git rev-parse FETCH_HEAD)" = "$CANDIDATE"
+          git checkout --detach "$CANDIDATE"
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test
+        env:
+          TMPDIR: /private/tmp/reimagined-launcher-tests
+          DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+        run: |
+          mkdir -p "$TMPDIR"
+          python3 -m unittest discover -s macos/tests -v
+          dotnet test ReimaginedLauncher.sln --verbosity minimal
+      - name: Package Apple Silicon app and update feed
+        env:
+          MAC_VERSION: ${{ needs.prepare.outputs.version }}
+          UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
+        run: |
+          ./macos/release.sh "$MAC_VERSION" "$RUNNER_TEMP/mac-release"
+          cd "$RUNNER_TEMP/mac-release"
+          shasum -a 256 -c SHA256SUMS
+      - name: Verify a real Mac update and restart
+        run: ./macos/smoke-update.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mac-release
+          path: ${{ runner.temp }}/mac-release/
+          retention-days: 30
+
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: macos
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          name: mac-source
+          path: ${{ runner.temp }}/mac-source
+      - uses: actions/download-artifact@v8
+        with:
+          name: mac-release
+          path: ${{ runner.temp }}/mac-release
+      - name: Verify provenance and advance the tested fork
+        env:
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+        run: |
+          git fetch "$RUNNER_TEMP/mac-source/candidate.bundle" HEAD
+          test "$(git rev-parse FETCH_HEAD)" = "$CANDIDATE"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          source = json.loads((root / 'mac-source/source.json').read_text())
+          release = json.loads((root / 'mac-release/provenance.json').read_text())
+          for field in ['version', 'forkCommit', 'upstreamTag', 'upstreamCommit', 'channel']:
+              if source[field] != release[field]:
+                  raise SystemExit('Release provenance mismatch: ' + field)
+          PY
+          (cd "$RUNNER_TEMP/mac-release" && sha256sum -c SHA256SUMS)
+          python3 macos/upstream_sync.py publish "$RUNNER_TEMP/mac-source/source.json" --verified
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+          MAC_VERSION: ${{ needs.prepare.outputs.version }}
+          CANDIDATE: ${{ needs.prepare.outputs.candidate }}
+          UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
+        run: |
+          git tag "$RELEASE_TAG" "$CANDIDATE"
+          git push origin "refs/tags/$RELEASE_TAG"
+          cat > "$RUNNER_TEMP/mac-release-notes.md" <<EOF
+          Native Apple Silicon launcher, based on official launcher $UPSTREAM_TAG.
+
+          Download the Portable.zip, extract the app, and move it to ~/Applications. CrossOver and an existing Diablo II: Resurrected installation are required; no .NET SDK is needed. macOS 14 or newer.
+
+          This build is ad-hoc signed and **not notarized**. Gatekeeper may block first launch. It is not an Apple-verified distribution. No Gatekeeper settings are changed by the app.
+
+          Future updates come from this fork through the launcher's Check for Updates and Restart & Update controls. Settings, add-ons and saves remain outside the application bundle.
+
+          The .nupkg and releases.osx-arm64.json assets are used by the automatic updater. SHA256SUMS and provenance.json identify the exact tested source and downloads. Tests do not establish successful in-game character entry.
+          EOF
+          gh release create "$RELEASE_TAG" "$RUNNER_TEMP/mac-release/"* --verify-tag --draft --title "Mac Launcher $MAC_VERSION (upstream $UPSTREAM_TAG)" --notes-file "$RUNNER_TEMP/mac-release-notes.md"
+          gh release edit "$RELEASE_TAG" --draft=false --latest

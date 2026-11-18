@@ -5,6 +5,24 @@ This is the Apple Silicon/CrossOver branch of
 The fork is [atsay714/reimagined-launcher](https://github.com/atsay714/reimagined-launcher),
 with `macos` as its default branch.
 
+## Download and update
+
+Download the **Portable.zip** from [GitHub Releases](https://github.com/atsay714/reimagined-launcher/releases),
+extract the app, and place it in `~/Applications`. Requires macOS 14 or newer on Apple
+Silicon, CrossOver and your own D2R installation. The app includes .NET; downloads
+need no SDK, Git, or build tools.
+
+These builds are **ad-hoc signed and not notarized**. macOS Gatekeeper may block first
+launch; this is not an Apple-verified distribution. The app does not disable Gatekeeper.
+Developer ID signing and notarization require Apple credentials that are not configured.
+
+**Check for Updates** uses this fork's `osx-arm64` Velopack feed. Once downloaded,
+**Restart & Update** saves settings, preserves the current app under the local
+`ReimaginedLauncher-Mac/rollback` folder, and replaces/restarts the app. Close the game
+and finish other launcher operations first. The existing disabled-update preference
+also disables the manual check. Older manually packaged apps require one replacement
+with a release ZIP before automatic updates work.
+
 ## Build and run
 
 Requires an Apple Silicon Mac, .NET 10 SDK, CrossOver, and an existing D2R installation
@@ -13,7 +31,16 @@ CrossOver is detected in `/Applications` or `~/Applications`.
 
 Run `./macos/package.sh` to build and install `~/Applications/Reimagined Launcher.app`.
 The script creates a self-contained arm64 app and signs it locally. It replaces the
-installed app, so close the launcher and preserve the previous app before rebuilding.
+installed app, so close the launcher before rebuilding. The previous app is copied to
+the local rollback folder first. `INSTALL=0` builds packages without installation;
+`VERSION=1.0.<build>` selects a Mac version. Mac SemVer `1.0.N` is independent of the
+official launcher version, which is retained in `provenance.json`.
+
+The matching pinned `vpk` CLI is downloaded through `dotnet dnx`. Managed assemblies
+are published as a single file so their signatures survive update package extraction.
+To create downloadable assets, run `./macos/release.sh 1.0.<build> <output-folder>`.
+An existing Developer ID identity and notary profile can be supplied through
+`MAC_SIGN_IDENTITY` and `MAC_NOTARY_PROFILE`; keep credentials outside this repository.
 
 For tests, use a canonical temporary path to avoid macOS `/var` symlink aliases:
 
@@ -32,16 +59,30 @@ The Mac instance socket uses a short absolute path under `/tmp` because the defa
 temporary directory plus .NET's pipe prefix exceeds macOS's socket path limit.
 Using only the short test TMPDIR above would mask that shutdown regression.
 
-## Upstream updates
+## Upstream updates and releases
 
 `origin` points to this fork; `upstream` points to the official launcher repository.
-Fetch official source and tags with `git fetch upstream --tags`. Keep a backup branch
-before rebasing the Mac patches onto a newer stable upstream release, then test,
-package, and verify the installed app. Back up saves before any save conversion or
-gameplay-affecting changes. Passing tests does not confirm character entry.
+The **Mac Release** GitHub Actions workflow checks the newest official stable release
+every six hours. It prepares a normal merge into `macos`, runs tooling/.NET tests,
+builds arm64 packages, and proves an isolated Mac app can update/restart while
+retaining a valid signature. Only successful candidates advance the fork and publish
+assets under GitHub Releases. Conflicts, failed tests and concurrent fork commits stop
+publication; previous releases remain available. Official tags are preserved.
 
-There is no Mac release feed or automatic source-build updater. Rebuild this branch
-for Mac updates; the official Windows/Linux updater does not supply this Mac build.
+A `macos` source push publishes fork-only fixes. In Actions, **Run workflow → release**
+publishes the current fork, while **sync** checks upstream first. The run number forms
+the Mac version (`1.0.N`); keep this workflow/version sequence when changing automation.
+Only the publication job has write permission. No token is shipped in the app.
+
+GitHub can disable scheduled workflows after 60 days of repository inactivity;
+re-enable the workflow in Actions if necessary. A failed publication after the tested
+merge was pushed can be recovered with the manual `release` mode.
+
+Run `python3 -m unittest discover -s macos/tests -v` for release-tool tests.
+After packaging, `./macos/smoke-update.sh` proves real update/restart with a disposable
+app identity and generated files. It does not use launcher settings or game saves.
+Passing tests does not confirm character entry. Back up saves before any conversion
+or gameplay-affecting changes.
 
 ## Shared settings and local paths
 

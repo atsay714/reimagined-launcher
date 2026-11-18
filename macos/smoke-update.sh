@@ -12,7 +12,7 @@ for VERSION in 1.0.1 1.0.2; do
     rm -rf "$WORK/raw"
     mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
     "$DOTNET" publish "$ROOT/macos/smoke/UpdateProbe.csproj" -c Release -r osx-arm64 --self-contained \
-        -p:Version="$VERSION" -o "$APP/Contents/MacOS"
+        -p:Version="$VERSION" -p:PublishSingleFile=true -o "$APP/Contents/MacOS"
     cp "$ROOT/artifacts/macos/Reimagined Launcher.app/Contents/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
     python3 - "$APP" "$VERSION" "$IDENTITY" <<'PY'
 import plistlib, sys

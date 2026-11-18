@@ -1,7 +1,8 @@
 # Reimagined Launcher
 
 This fork adds a native Apple Silicon launcher that runs D2R through CrossOver.
-Use the `macos` branch and see [Mac build and setup](macos/README.md).
+Use the `macos` branch, download from [Releases](https://github.com/atsay714/reimagined-launcher/releases),
+and see [Mac build and setup](macos/README.md) for requirements and signing limitations.
 The original launcher is maintained by [D2R-Reimagined](https://github.com/D2R-Reimagined/reimagined-launcher).
 This is an unofficial Mac fork; upstream's launcher auto-updater does not install this Mac build.
 

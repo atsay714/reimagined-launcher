@@ -2,9 +2,9 @@ name: Launcher Tests
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, macos]
   push:
-    branches: [main]
+    branches: [main, macos]
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-15]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -26,6 +26,14 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
+      - name: Canonical Mac temporary path
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p /private/tmp/reimagined-launcher-tests
+          echo 'TMPDIR=/private/tmp/reimagined-launcher-tests' >> "$GITHUB_ENV"
+      - name: Mac release tooling tests
+        if: runner.os != 'Windows'
+        run: python3 -m unittest discover -s macos/tests -v
       - name: Restore
         run: dotnet restore ReimaginedLauncher.sln
       - name: Build

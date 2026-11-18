@@ -3,6 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 [[ $# == 2 ]] || { echo 'Usage: macos/release.sh VERSION OUTPUT' >&2; exit 2; }
+[[ -z "$(git -C "$ROOT" status --porcelain)" ]] || { echo 'Release builds require committed, clean source for provenance' >&2; exit 1; }
 VERSION="$1"
 OUTPUT="$2"
 TAG="${UPSTREAM_TAG:-$(git -C "$ROOT" describe --tags --match 'v[0-9]*' --abbrev=0)}"
