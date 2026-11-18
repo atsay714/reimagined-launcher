@@ -2,6 +2,8 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+import json
 
 SPEC = importlib.util.spec_from_file_location("publish_release", Path(__file__).parents[1] / "publish_release.py")
 publish = importlib.util.module_from_spec(SPEC)
@@ -66,6 +68,12 @@ class PublishReleaseTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.run_publish()
         self.assertEqual([], self.refs)
+
+    def test_draft_lookup_falls_back_to_authenticated_release_list(self):
+        client = publish.GitHub(self.data)
+        draft = dict(tag_name=self.data["releaseTag"], draft=True, assets=[])
+        with patch.object(client, "command", side_effect=[None, json.dumps([[draft]])]):
+            self.assertEqual(draft, client.get(self.data["releaseTag"]))
 
     def test_asset_manifest_covers_all_release_files(self):
         with tempfile.TemporaryDirectory() as temp:

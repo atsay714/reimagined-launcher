@@ -43,7 +43,10 @@ class GitHub:
 
     def get(self, tag):
         result = self.command("api", "repos/" + REPOSITORY + "/releases/tags/" + tag, missing_ok=True)
-        return json.loads(result) if result is not None else None
+        if result is not None:
+            return json.loads(result)
+        pages = json.loads(self.command("api", "--paginate", "--slurp", "repos/" + REPOSITORY + "/releases?per_page=100"))
+        return next((release for page in pages for release in page if release["tag_name"] == tag), None)
 
     def published_versions(self):
         pages = json.loads(self.command("api", "--paginate", "--slurp", "repos/" + REPOSITORY + "/releases?per_page=100"))
@@ -64,6 +67,8 @@ class GitHub:
         if not ref or ref[0] != self.data["candidateCommit"]:
             raise RuntimeError("Existing release tag does not match the tested source")
         release = self.get(tag)
+        if release is None:
+            raise RuntimeError("The uploaded draft is not yet readable; rerun publication to resume it safely")
         local = {p.name: p for p in Path(assets).iterdir()}
         remote = {item["name"]: item for item in release["assets"]}
         if set(local) != set(remote):
