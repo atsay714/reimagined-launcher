@@ -22,6 +22,16 @@ mkdir -p /private/tmp/reimagined-launcher-tests
 TMPDIR=/private/tmp/reimagined-launcher-tests dotnet test ReimaginedLauncher.sln --verbosity minimal
 ```
 
+Also run the instance/exit regression tests with macOS's normal temporary directory:
+
+```sh
+dotnet test ReimaginedLauncher.sln --filter FullyQualifiedName~LauncherInstanceTests --verbosity minimal
+```
+
+The Mac instance socket uses a short absolute path under `/tmp` because the default
+temporary directory plus .NET's pipe prefix exceeds macOS's socket path limit.
+Using only the short test TMPDIR above would mask that shutdown regression.
+
 ## Upstream updates
 
 `origin` points to this fork; `upstream` points to the official launcher repository.
