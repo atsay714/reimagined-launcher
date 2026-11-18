@@ -105,6 +105,12 @@
                                Cursor="Hand"
                                ToolTip.Tip="Click to check for a launcher update"
                                PointerPressed="OnLauncherVersionClicked" />
+                    <Button x:Name="MacLauncherUpdateButton"
+                            Content="Check for Updates"
+                            IsVisible="False"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Click="OnMacLauncherUpdateClicked" />
                     <Grid ColumnDefinitions="*,*"
                           RowDefinitions="*,*"
                           ColumnSpacing="8"

@@ -37,7 +37,7 @@ class Program
             }
             return;
         }
-        VelopackApp.Build().SetAutoApplyOnStartup(!LauncherUpdateService.IsPreviewBuild).Run();
+        VelopackApp.Build().SetAutoApplyOnStartup(!LauncherUpdateService.IsPreviewBuild && !OperatingSystem.IsMacOS()).Run();
 
         using var instance = new LauncherInstance(LauncherInstance.DefaultIdentity);
         if (!instance.IsPrimary)

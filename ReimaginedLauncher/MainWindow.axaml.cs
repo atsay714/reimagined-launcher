@@ -111,6 +111,7 @@ public partial class MainWindow : Window
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "ReimaginedLauncher.ico");
         LogoImage.Source = new Bitmap(iconPath);
         LauncherVersionTextBlock.Text = $"Launcher v{LauncherVersion}";
+        MacLauncherUpdateButton.IsVisible = OperatingSystem.IsMacOS();
         LauncherUpdateService.UpdateDownloaded += (s, e) => RefreshLauncherUpdateUI();
         LauncherUpdateService.UpdateStateChanged += (s, e) => RefreshLauncherUpdateUI();
         RefreshLauncherUpdateUI();
@@ -1631,9 +1632,50 @@ public partial class MainWindow : Window
             : "News & Announcements";
     }
 
-    private void OnLauncherRestartClicked(object? sender, RoutedEventArgs e)
+    private bool _isRestartingForUpdate;
+
+    private async void OnLauncherRestartClicked(object? sender, RoutedEventArgs e)
     {
-        LauncherUpdateService.ApplyUpdateAndRestart();
+        if (!OperatingSystem.IsMacOS())
+        {
+            LauncherUpdateService.ApplyUpdateAndRestart();
+            return;
+        }
+        if (_isRestartingForUpdate || LauncherUpdateService.AreUpdatesDisabled || !LauncherUpdateService.IsUpdateDownloaded) return;
+        var reason = LauncherUpdateService.GetRestartBlockReason(IsGameRunning(),
+            IsInstallInProgress || _isInitializingSettings || OwnedWindows.Count != 0
+            || ContentArea.Content is LaunchView { IsBusyForLauncherUpdate: true });
+        if (reason is not null)
+        {
+            Notifications.SendNotification(reason, "Launcher");
+            return;
+        }
+
+        _isRestartingForUpdate = true;
+        IsInstallInProgress = true;
+        ContentArea.IsEnabled = false;
+        NavigationList.IsEnabled = false;
+        try
+        {
+            var appDirectory = Directory.GetParent(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory))?.Parent?.FullName
+                ?? throw new InvalidOperationException("Could not locate the Mac application bundle.");
+            await MacLauncherUpdateBackup.CreateAsync(appDirectory, Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReimaginedLauncher-Mac", "rollback"));
+            await SettingsManager.SaveAsync(Settings);
+            if (IsGameRunning()) throw new InvalidOperationException("Close the game before installing the update.");
+            LauncherUpdateService.ApplyUpdateAndRestart();
+        }
+        catch (Exception exception)
+        {
+            Notifications.SendNotification($"Launcher update was not installed: {exception.Message}", "Error");
+        }
+        finally
+        {
+            _isRestartingForUpdate = false;
+            IsInstallInProgress = false;
+            ContentArea.IsEnabled = true;
+            NavigationList.IsEnabled = true;
+        }
     }
 
     // Starts (or restarts) the hourly background check that pings the launcher update endpoint
@@ -1647,7 +1689,11 @@ public partial class MainWindow : Window
         _launcherUpdateCheckTimer.Start();
     }
 
-    private async void OnLauncherVersionClicked(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    private void OnLauncherVersionClicked(object? sender, Avalonia.Input.PointerPressedEventArgs e) => CheckLauncherUpdates();
+
+    private void OnMacLauncherUpdateClicked(object? sender, RoutedEventArgs e) => CheckLauncherUpdates();
+
+    private async void CheckLauncherUpdates()
     {
         if (LauncherUpdateService.AreUpdatesDisabled)
         {

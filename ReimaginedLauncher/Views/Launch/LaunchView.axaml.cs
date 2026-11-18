@@ -27,6 +27,7 @@ public partial class LaunchView : UserControl
     private readonly D2RLoaderInstallerService _d2rLoaderInstallerService;
     private readonly LadderBundleService _ladderBundleService;
     private bool _isLaunching;
+    internal bool IsBusyForLauncherUpdate => _isLaunching || _isRunningLadderAction || _pluginBusy || _isSteamSetupRunning;
     private bool _isSteamSetupRunning;
     private bool _isLoaderInstallPromptOpen;
     private bool _hasPromptedForMissingLoader;

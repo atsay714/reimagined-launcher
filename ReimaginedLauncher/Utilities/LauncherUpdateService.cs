@@ -21,7 +21,13 @@ public sealed record LauncherUpdateCheckResult(LauncherUpdateCheckStatus Status,
 
 public static class LauncherUpdateService
 {
-    private const string RepoUrl = "https://github.com/D2R-Reimagined/reimagined-launcher";
+    internal static string GetRepositoryUrl(bool macOS) => macOS
+        ? "https://github.com/atsay714/reimagined-launcher"
+        : "https://github.com/D2R-Reimagined/reimagined-launcher";
+
+    internal static string? GetRestartBlockReason(bool gameRunning, bool busy) => gameRunning
+        ? "Close the game before installing a launcher update."
+        : busy ? "Wait for the current launcher operation to finish before updating." : null;
     private static readonly SemaphoreSlim UpdateCheckLock = new(1, 1);
     private static UpdateManager? _updateManager;
     private static UpdateInfo? _updateInfo;
@@ -55,7 +61,7 @@ public static class LauncherUpdateService
     public static Task<LauncherUpdateCheckResult> CheckForUpdatesAsync()
     {
         return CheckForUpdatesAsync(() =>
-            new UpdateManager(new GithubSource(RepoUrl, accessToken: null, prerelease: false)));
+            new UpdateManager(new GithubSource(GetRepositoryUrl(OperatingSystem.IsMacOS()), accessToken: null, prerelease: false)));
     }
 
     internal static async Task<LauncherUpdateCheckResult> CheckForUpdatesAsync(Func<UpdateManager> createUpdateManager)
