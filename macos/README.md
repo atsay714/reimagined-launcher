@@ -1,6 +1,37 @@
 # Mac build
 
+This is the Apple Silicon/CrossOver branch of
+[D2R-Reimagined/reimagined-launcher](https://github.com/D2R-Reimagined/reimagined-launcher).
+The fork is [atsay714/reimagined-launcher](https://github.com/atsay714/reimagined-launcher),
+with `macos` as its default branch.
+
+## Build and run
+
+Requires an Apple Silicon Mac, .NET 10 SDK, CrossOver, and an existing D2R installation
+in a CrossOver bottle. The launcher is native; the game runs through CrossOver.
+CrossOver is detected in `/Applications` or `~/Applications`.
+
 Run `./macos/package.sh` to build and install `~/Applications/Reimagined Launcher.app`.
+The script creates a self-contained arm64 app and signs it locally. It replaces the
+installed app, so close the launcher and preserve the previous app before rebuilding.
+
+For tests, use a canonical temporary path to avoid macOS `/var` symlink aliases:
+
+```sh
+mkdir -p /private/tmp/reimagined-launcher-tests
+TMPDIR=/private/tmp/reimagined-launcher-tests dotnet test ReimaginedLauncher.sln --verbosity minimal
+```
+
+## Upstream updates
+
+`origin` points to this fork; `upstream` points to the official launcher repository.
+Fetch official source and tags with `git fetch upstream --tags`. Keep a backup branch
+before rebasing the Mac patches onto a newer stable upstream release, then test,
+package, and verify the installed app. Back up saves before any save conversion or
+gameplay-affecting changes. Passing tests does not confirm character entry.
+
+There is no Mac release feed or automatic source-build updater. Rebuild this branch
+for Mac updates; the official Windows/Linux updater does not supply this Mac build.
 
 ## Shared settings and local paths
 
