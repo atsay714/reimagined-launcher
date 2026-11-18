@@ -26,8 +26,10 @@ internal sealed class LauncherInstance : IDisposable
     internal LauncherInstance(string identity)
     {
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)))[..32];
-        _pipeName = "D2RReimagined-" + hash;
-        _mutex = new Mutex(false, (OperatingSystem.IsWindows() ? "Local\\" : "") + _pipeName);
+        var instanceName = "D2RReimagined-" + hash;
+        // macOS TMPDIR plus the default pipe prefix exceeds the Unix socket path limit.
+        _pipeName = OperatingSystem.IsMacOS() ? Path.Combine("/tmp", instanceName) : instanceName;
+        _mutex = new Mutex(false, (OperatingSystem.IsWindows() ? "Local\\" : "") + instanceName);
         try { IsPrimary = _mutex.WaitOne(0); }
         catch (AbandonedMutexException) { IsPrimary = true; }
         if (IsPrimary) _listener = ListenAsync();
